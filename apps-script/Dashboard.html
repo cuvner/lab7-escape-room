@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  :root{--bg:#070b18;--panel:#111a36;--line:#26366a;--text:#e8eeff;--muted:#8e9dcc;--ok:#3cf0b8;--now:#5aa9ff;--warn:#ffbe4d}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,Segoe UI,Arial,sans-serif}
+  header{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;padding:1rem 1.2rem;border-bottom:1px solid var(--line)}
+  h1{font-size:1.2rem;margin:0;letter-spacing:.08em}
+  h1 span{color:var(--ok)}
+  .spacer{flex:1}
+  select,input{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:.45rem .6rem;font:inherit}
+  #updated{color:var(--muted);font-size:.85rem}
+  .summary{display:flex;gap:.8rem;flex-wrap:wrap;padding:1rem 1.2rem}
+  .tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:.7rem 1rem;min-width:140px}
+  .tile small{display:block;color:var(--muted);font-size:.8rem}
+  .tile b{font-size:1.6rem}
+  .wrap{padding:0 1.2rem 2rem;overflow-x:auto}
+  table{border-collapse:collapse;width:100%;min-width:760px}
+  th,td{padding:.5rem .4rem;text-align:center;border-bottom:1px solid #1a2550;font-size:.9rem}
+  th{color:var(--muted);font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em}
+  td.name{text-align:left;font-weight:700;font-family:Consolas,monospace;font-size:1rem}
+  .c{display:inline-block;width:1.7rem;height:1.7rem;line-height:1.7rem;border-radius:6px;background:#1a2550;color:var(--muted)}
+  .c.done{background:var(--ok);color:#03150f}
+  .c.now{background:var(--now);color:#03102a;animation:pulse 2s infinite}
+  .c.skip{background:var(--warn);color:#201400}
+  @keyframes pulse{50%{opacity:.55}}
+  tr.stuck td{background:rgba(255,190,77,.08)}
+  .badge{display:inline-block;padding:.1rem .45rem;border-radius:6px;font-size:.75rem;background:var(--warn);color:#201400;margin-left:.3rem}
+  .esc{color:var(--ok);font-weight:700}
+  .muted{color:var(--muted)}
+  .empty{padding:2rem;text-align:center;color:var(--muted)}
+  .key{padding:0 1.2rem 1rem;color:var(--muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<header>
+  <h1>LAB <span>7</span> LOCKDOWN · DASHBOARD</h1>
+  <div class="spacer"></div>
+  <select id="cls"><option value="">All classes</option></select>
+  <input type="date" id="day">
+  <span id="updated">Loading...</span>
+</header>
+<div class="summary" id="summary"></div>
+<div class="key">
+  <span class="c done">✓</span> done &nbsp; <span class="c now">•</span> working on it &nbsp; <span class="badge">2 T</span> locks opened by teacher &nbsp;
+  Amber rows: no progress for 10+ minutes. Shows each student's best attempt on the chosen day.
+</div>
+<div class="wrap"><table><thead id="head"></thead><tbody id="body"></tbody></table></div>
+
+<script>
+const KEY = <?!= JSON.stringify(key) ?>;
+const STAGES = <?!= stageNames ?>;
+const SHORT = ['Key','L1','L2','L3','L4','L5','Door'];
+const STUCK_MS = 10 * 60 * 1000;
+let DATA = null;
+
+function todayStr(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function mmss(s){ s=Math.round(s); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function ago(ms){ const m=Math.floor(ms/60000); return m<1?'just now':m+' min ago'; }
+
+document.getElementById('day').value = todayStr();
+document.getElementById('day').addEventListener('change', load);
+document.getElementById('cls').addEventListener('change', render);
+
+document.getElementById('head').innerHTML =
+  '<tr><th style="text-align:left">Student</th><th>Class</th>' +
+  SHORT.map((s,i)=>'<th title="'+STAGES[i]+'">'+s+'</th>').join('') +
+  '<th>Escape time</th><th>Attempts</th><th>Last activity</th></tr>';
+
+function load(){
+  google.script.run
+    .withSuccessHandler(d => { DATA = d; render(); document.getElementById('updated').textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB'); })
+    .withFailureHandler(e => { document.getElementById('updated').textContent = 'Could not load: ' + e.message; })
+    .getData(KEY, document.getElementById('day').value);
+}
+
+function render(){
+  if(!DATA) return;
+  const sel = document.getElementById('cls');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">All classes</option>' + DATA.classes.map(c=>'<option'+(c===current?' selected':'')+'>'+c+'</option>').join('');
+
+  const list = DATA.students
+    .filter(s => !sel.value || s.cls === sel.value)
+    .sort((a,b) => b.best - a.best || a.initials.localeCompare(b.initials));
+
+  const isToday = document.getElementById('day').value === todayStr();
+  const escaped = list.filter(s=>s.escaped).length;
+  const onDoor = list.filter(s=>!s.escaped && s.best===STAGES.length-2).length;
+  const stuck = list.filter(s=>isToday && !s.escaped && DATA.now - s.lastSeen > STUCK_MS).length;
+  document.getElementById('summary').innerHTML =
+    tile('Students', list.length) + tile('Escaped', escaped) + tile('On final door', onDoor) + tile('Possibly stuck', stuck);
+
+  if(!list.length){ document.getElementById('body').innerHTML = '<tr><td colspan="12" class="empty">No activity yet for this day.</td></tr>'; return; }
+
+  document.getElementById('body').innerHTML = list.map(s => {
+    const isStuck = isToday && !s.escaped && DATA.now - s.lastSeen > STUCK_MS;
+    const cells = STAGES.map((_,i) => {
+      if(i <= s.best) return '<td><span class="c done">✓</span></td>';
+      if(i === s.best + 1 && !s.escaped) return '<td><span class="c now">•</span></td>';
+      return '<td><span class="c"></span></td>';
+    }).join('');
+    return '<tr class="'+(isStuck?'stuck':'')+'"><td class="name">'+s.initials+(s.overrides?'<span class="badge">'+s.overrides+' T</span>':'')+'</td>'+
+      '<td>'+s.cls+'</td>'+cells+
+      '<td>'+(s.escaped?'<span class="esc">'+mmss(s.escapeTime)+'</span>':'<span class="muted">-</span>')+'</td>'+
+      '<td>'+s.attempts+'</td>'+
+      '<td class="muted">'+ago(DATA.now - s.lastSeen)+(isStuck?'<span class="badge">check</span>':'')+'</td></tr>';
+  }).join('');
+}
+function tile(label, n){ return '<div class="tile"><small>'+label+'</small><b>'+n+'</b></div>'; }
+
+load();
+setInterval(load, 30000);
+</script>
+</body>
+</html>

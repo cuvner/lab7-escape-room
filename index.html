@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 7 Lockdown</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;700&family=Inter:wght@400;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070b18; --panel:#111a36; --panel2:#16224a; --line:#26366a;
+  --text:#e8eeff; --muted:#8e9dcc; --accent:#3cf0b8; --accent2:#5aa9ff; --warn:#ffbe4d; --bad:#ff5a6e;
+  --head:'Chakra Petch',system-ui,sans-serif; --body:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:radial-gradient(1100px 600px at 75% -10%,#17265e 0%,transparent 60%),var(--bg);color:var(--text);font-family:var(--body);font-size:16px;line-height:1.5;transition:background .6s}
+body.dim{background:#020308}
+button{font:inherit;cursor:pointer}
+code{font-family:var(--mono);background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:.05rem .35rem;color:var(--accent)}
+.hidden{display:none!important}
+.btn{background:var(--accent);color:#03150f;border:0;border-radius:10px;padding:.75rem 1.3rem;font-family:var(--head);font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+.btn:hover{filter:brightness(1.1)}
+.btn.small{padding:.4rem .8rem;font-size:.8rem}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+.btn.warn{background:var(--warn)}
+
+header{display:flex;align-items:center;gap:.8rem;padding:.7rem 1.2rem;border-bottom:1px solid var(--line);background:rgba(7,11,24,.85);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+.logo{font-family:var(--head);font-weight:700;font-size:1.25rem;letter-spacing:.14em}
+.logo span{color:var(--accent)}
+.spacer{flex:1}
+.pill{font-family:var(--mono);font-size:.85rem;border:1px solid var(--line);border-radius:999px;padding:.3rem .8rem;background:var(--panel);white-space:nowrap}
+.dot{display:inline-block;width:.6rem;height:.6rem;border-radius:50%;background:var(--bad);margin-right:.4rem;vertical-align:middle}
+.dot.on{background:var(--accent);box-shadow:0 0 10px var(--accent)}
+
+main{max-width:1300px;margin:0 auto;padding:1.2rem}
+.card{background:linear-gradient(180deg,var(--panel),#0e1630);border:1px solid var(--line);border-radius:16px;padding:1.4rem}
+
+/* intro */
+.intro{max-width:720px;margin:2rem auto}
+.intro h1{font-family:var(--head);font-size:2.4rem;margin:.2rem 0 .6rem;letter-spacing:.06em}
+.intro h1 span{color:var(--accent)}
+.story{color:#c9d3f5}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1.2rem 0}
+.form label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:.3rem}
+.form input,.form select{width:100%;padding:.7rem .8rem;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit;font-family:var(--mono);font-size:1.1rem;text-transform:uppercase}
+.checklist{margin:1rem 0;padding:0;list-style:none}
+.checklist li{padding:.35rem 0 .35rem 1.8rem;position:relative;color:#c9d3f5}
+.checklist li::before{content:"▸";position:absolute;left:.4rem;color:var(--accent)}
+.banner{border:1px solid var(--bad);background:rgba(255,90,110,.12);color:#ffd0d6;padding:.8rem 1rem;border-radius:10px;margin:1rem 0}
+.err{color:var(--bad);font-size:.9rem;min-height:1.2rem}
+
+/* game layout */
+.game{display:grid;grid-template-columns:230px 1fr 320px;gap:1rem;align-items:start}
+@media (max-width:1050px){.game{grid-template-columns:1fr}}
+.rail h3,.console h3{font-family:var(--head);font-size:.85rem;letter-spacing:.12em;color:var(--muted);margin:0 0 .8rem;text-transform:uppercase}
+.rail ol{list-style:none;margin:0;padding:0}
+.rail li{display:flex;gap:.6rem;align-items:center;padding:.55rem .6rem;border-radius:10px;margin-bottom:.3rem;color:var(--muted);font-size:.92rem}
+.rail li .n{width:1.8rem;height:1.8rem;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line);font-family:var(--mono);font-size:.8rem;flex:none}
+.rail li.done{color:var(--text)}
+.rail li.done .n{background:var(--accent);color:#03150f;border-color:var(--accent)}
+.rail li.current{background:var(--panel2);color:var(--text);outline:1px solid var(--accent2)}
+.rail li.current .n{border-color:var(--accent2);color:var(--accent2)}
+
+.stage{position:relative;overflow:hidden;transition:filter .6s}
+body.dim .stage{filter:brightness(.7)}
+.kicker{font-family:var(--mono);font-size:.8rem;color:var(--accent2);letter-spacing:.1em}
+.stage h2{font-family:var(--head);font-size:1.9rem;margin:.1rem 0 .4rem;letter-spacing:.04em}
+.need{margin:.6rem 0 1rem;padding:.6rem .9rem;border-left:3px solid var(--accent);background:rgba(60,240,184,.07);border-radius:0 8px 8px 0}
+.tip{color:var(--muted);font-size:.95rem}
+.help{margin-top:1.2rem;padding-top:.9rem;border-top:1px dashed var(--line);font-size:.9rem;color:var(--muted)}
+.feedback{min-height:2.6rem;margin-top:1rem;padding:.6rem .9rem;border-radius:10px;font-weight:600;display:none}
+.feedback.show{display:block}
+.feedback.ok{background:rgba(60,240,184,.12);color:var(--accent);border:1px solid rgba(60,240,184,.4)}
+.feedback.progress{background:rgba(90,169,255,.12);color:#b9d8ff;border:1px solid rgba(90,169,255,.4)}
+.feedback.bad{background:rgba(255,90,110,.12);color:#ffc2ca;border:1px solid rgba(255,90,110,.45)}
+.granted{position:absolute;inset:0;display:grid;place-items:center;background:rgba(3,21,15,.92);font-family:var(--head);font-size:2.6rem;letter-spacing:.15em;color:var(--accent);text-shadow:0 0 30px var(--accent);opacity:0;pointer-events:none;transition:opacity .25s}
+.granted.show{opacity:1}
+
+/* console */
+.console .log{font-family:var(--mono);font-size:.82rem;background:#04070f;border:1px solid var(--line);border-radius:10px;height:430px;overflow-y:auto;padding:.6rem}
+.log div{padding:.15rem 0;border-bottom:1px solid #0f1830;word-break:break-word}
+.log .t{color:#4d5c8a;margin-right:.4rem}
+.log .used{color:var(--accent)}
+.log .wrong{color:var(--bad)}
+.log .ign{color:#6d7aa3}
+.log .sys{color:var(--warn)}
+.console p{font-size:.82rem;color:var(--muted);margin:.6rem 0 0}
+
+/* puzzles */
+.term{font-family:var(--mono);background:#03060d;border:1px solid var(--line);border-radius:12px;padding:1rem 1.2rem;margin-bottom:1rem}
+.okc{color:var(--accent)} .badc{color:var(--bad)}
+.blink{animation:blink 1.2s steps(2) infinite}
+@keyframes blink{50%{opacity:.35}}
+.screen{display:flex;gap:.5rem;justify-content:center;margin:.5rem 0 1rem}
+.screen span{width:2.6rem;height:3.2rem;display:grid;place-items:center;font-family:var(--mono);font-size:1.6rem;background:#03060d;border:1px solid var(--line);border-radius:8px;color:var(--accent2)}
+.objects{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem}
+.obj{background:var(--panel2);border:1px solid var(--line);border-radius:12px;color:var(--text);padding:1rem .6rem;display:flex;flex-direction:column;align-items:center;gap:.3rem}
+.obj:hover{border-color:var(--accent2)}
+.obj.found{border-color:var(--accent)}
+.obj-icon{font-size:2.2rem}
+.obj .clue{font-size:.85rem;color:var(--muted)}
+.obj .clue b{font-family:var(--mono);color:var(--accent);font-size:1.2rem}
+.rack{background:#05080f;border:1px solid var(--line);border-radius:12px;padding:.8rem}
+.rack-label{font-family:var(--mono);font-size:.8rem;color:var(--bad);letter-spacing:.1em;margin-bottom:.5rem}
+.bugfield{display:grid;grid-template-columns:repeat(8,1fr);gap:.3rem;background:repeating-linear-gradient(0deg,#0c1328 0 22px,#0a1022 22px 24px);border-radius:8px;padding:.5rem}
+.bugfield span{height:2.6rem;display:grid;place-items:center;font-size:1.7rem}
+.seq{display:grid;grid-template-columns:repeat(4,1fr);gap:.7rem;margin-bottom:.6rem}
+.move{background:var(--panel2);border:1px solid var(--line);border-radius:12px;text-align:center;padding:1rem .4rem;font-size:.9rem}
+.move .mi{font-size:2.3rem}
+.move.next{outline:2px solid var(--accent2)}
+.move.done{border-color:var(--accent);background:rgba(60,240,184,.12)}
+.sensor{text-align:center;padding:1rem}
+.eye{font-size:3.5rem}
+.meter{display:flex;gap:.5rem;justify-content:center;margin:.6rem 0}
+.meter span{width:4rem;height:1rem;border-radius:4px;background:#1a2550}
+.meter span.on{background:var(--accent);box-shadow:0 0 12px var(--accent)}
+.meter-label{font-family:var(--mono);color:var(--muted)}
+.reactor{text-align:center}
+.core{width:9rem;height:9rem;margin:.4rem auto 1rem;border-radius:50%;display:grid;place-items:center;font-family:var(--mono);font-size:3.2rem;font-weight:700;color:#fff;background:radial-gradient(circle,#ff7a3c 0%,#b3122e 60%,#3a0610 100%);box-shadow:0 0 40px #ff4d2e}
+.core.cooling{background:radial-gradient(circle,#5aa9ff 0%,#1b3a8f 60%,#071233 100%);box-shadow:0 0 40px #5aa9ff}
+.cells{display:flex;gap:.3rem;justify-content:center;flex-wrap:wrap}
+.cells span{width:2.2rem;height:2.2rem;display:grid;place-items:center;border-radius:6px;background:#1a2550;font-family:var(--mono);font-size:.85rem;color:var(--muted)}
+.cells span.on{background:var(--accent2);color:#03102a}
+.door{display:flex;justify-content:center}
+.door-panel{width:100%;max-width:420px;background:repeating-linear-gradient(90deg,#141d3c 0 18px,#111933 18px 20px);border:2px solid var(--line);border-radius:14px 14px 4px 4px;padding:1.2rem}
+.dp-title{font-family:var(--head);letter-spacing:.12em;color:var(--warn)}
+.dp-count{font-family:var(--mono);font-size:1.3rem;margin:.6rem 0}
+.dp-count b{color:var(--accent);font-size:2rem}
+.door-panel ul{margin:.4rem 0 0;padding-left:1.2rem;color:#c9d3f5}
+
+/* win */
+.win{max-width:640px;margin:2.5rem auto;text-align:center}
+.win h1{font-family:var(--head);font-size:3rem;color:var(--accent);letter-spacing:.12em;margin:.2rem 0;text-shadow:0 0 30px rgba(60,240,184,.6)}
+.win .facts{display:grid;grid-template-columns:repeat(2,1fr);gap:.8rem;margin:1.4rem 0}
+.win .facts div{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:.8rem}
+.win .facts small{display:block;color:var(--muted)}
+.win .facts b{font-family:var(--mono);font-size:1.4rem}
+
+/* teacher */
+.teacher{position:fixed;left:1rem;bottom:1rem;z-index:20;width:300px;background:#1e1405;border:1px solid var(--warn);border-radius:12px;padding:.9rem;font-size:.9rem}
+.teacher h4{margin:0 0 .5rem;color:var(--warn);font-family:var(--head);letter-spacing:.1em}
+.teacher input{width:100%;padding:.45rem;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--text);font-family:var(--mono)}
+.teacher .row{display:flex;gap:.4rem;margin-top:.5rem;flex-wrap:wrap}
+.teacher .ans{margin-top:.5rem;font-family:var(--mono);color:var(--warn)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">LAB <span>7</span> LOCKDOWN</div>
+  <div class="spacer"></div>
+  <span class="pill hidden" id="studentPill"></span>
+  <span class="pill hidden" id="timerPill">00:00</span>
+  <span class="pill"><span class="dot" id="dot"></span><span id="connText">Key not connected</span></span>
+  <button class="btn small" id="connectBtn">Connect key</button>
+</header>
+
+<main>
+  <!-- INTRO -->
+  <section id="intro" class="intro card">
+    <div class="kicker">INCIDENT REPORT · LAB 7</div>
+    <h1>You are <span>locked in.</span></h1>
+    <p class="story">A rogue program called GLITCH has taken over the computer lab and sealed every door. The only way out is to build a key. Your micro:bit is that key. Program it, plug it in, and send the right signals to break through six locks.</p>
+    <div id="unsupported" class="banner hidden">This browser cannot talk to a micro:bit. Open this page in <b>Google Chrome</b> or <b>Microsoft Edge</b>.</div>
+    <ul class="checklist">
+      <li>Your micro:bit is plugged in with a USB cable.</li>
+      <li>Your program from MakeCode is downloaded onto it.</li>
+      <li>MakeCode is <b>disconnected</b> from the micro:bit (only one thing can use the key at a time).</li>
+    </ul>
+    <div class="form">
+      <div><label for="initials">Your initials</label><input id="initials" maxlength="4" placeholder="e.g. JS" autocomplete="off"></div>
+      <div><label for="cls">Your class</label><select id="cls"></select></div>
+    </div>
+    <div class="err" id="introErr"></div>
+    <button class="btn" id="startBtn">Start escape</button>
+  </section>
+
+  <!-- GAME -->
+  <section id="game" class="game hidden">
+    <aside class="rail card"><h3>Locks</h3><ol id="rail"></ol></aside>
+    <section class="stage card" id="stageCard">
+      <div class="kicker" id="kicker"></div>
+      <h2 id="stageTitle"></h2>
+      <p class="story" id="stageStory"></p>
+      <div class="need" id="stageNeed"></div>
+      <div id="puzzle"></div>
+      <div class="feedback" id="feedback"></div>
+      <div class="help" id="help"></div>
+      <div class="granted" id="granted">ACCESS GRANTED</div>
+    </section>
+    <aside class="console card">
+      <h3>Signals from your key</h3>
+      <div class="log" id="log"></div>
+      <p>Every message your micro:bit sends appears here. If nothing appears, check the connection and your <code>serial write</code> blocks.</p>
+    </aside>
+  </section>
+
+  <!-- WIN -->
+  <section id="win" class="win card hidden">
+    <div class="kicker">LAB 7 · ALL LOCKS OPEN</div>
+    <h1>YOU ESCAPED</h1>
+    <p class="story">GLITCH has been shut down. Your micro:bit key opened every lock.</p>
+    <div class="facts">
+      <div><small>Agent</small><b id="wName"></b></div>
+      <div><small>Class</small><b id="wClass"></b></div>
+      <div><small>Escape time</small><b id="wTime"></b></div>
+      <div><small>Date</small><b id="wDate"></b></div>
+    </div>
+    <p class="tip">Take a screenshot of this screen and add it to your evidence.</p>
+    <button class="btn ghost" onclick="location.reload()">Play again</button>
+  </section>
+</main>
+
+<!-- TEACHER PANEL (Ctrl+Shift+T or add ?teacher to the URL) -->
+<div class="teacher hidden" id="teacher">
+  <h4>TEACHER MODE</h4>
+  <input id="simInput" placeholder="Type a fake micro:bit message">
+  <div class="row">
+    <button class="btn small" id="simBtn">Send</button>
+    <button class="btn small warn" id="skipBtn">Skip lock</button>
+    <button class="btn small ghost" id="ansBtn">Answer</button>
+    <button class="btn small ghost" id="closeTeacher">Close</button>
+  </div>
+  <div class="ans" id="ans"></div>
+</div>
+
+<script>
+/* ===================== SETTINGS: edit these ===================== */
+const CONFIG = {
+  SCRIPT_URL: '',                         // paste your Apps Script web app URL here (leave blank for no dashboard)
+  CLASSES: ['7A','7B','7C','7D','7E','7F'],
+  TEACHER_PIN: '7777',
+  PASSWORD: 'LASER'                       // Lock 1 password, split across three clues
+};
+/* ================================================================ */
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rand = (a,b) => a + Math.floor(Math.random()*(b-a+1));
+const shuffle = arr => { for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];} return arr; };
+
+const S = { initials:'', cls:'', stage:0, p:null, playing:false, busy:false, startTime:0, timer:null, port:null, connected:false };
+
+const GESTURES = {
+  LEFT:{icon:'⬅️',label:'Tilt left'}, RIGHT:{icon:'➡️',label:'Tilt right'},
+  SHAKE:{icon:'〰️',label:'Shake'},    FLIP:{icon:'🔃',label:'Screen down'}
+};
+const KNOWN = ['HELLO','DARK','LOUD', ...Object.keys(GESTURES)];
+const OBJECTS = [{icon:'📌',name:'Notice board'},{icon:'🖥️',name:'Monitor'},{icon:'🗑️',name:'Bin'}];
+
+function splitWord(w){
+  const size = Math.ceil(w.length/3);
+  return [w.slice(0,size), w.slice(size,size*2), w.slice(size*2)];
+}
+
+/* ---------- the six locks (plus the handshake) ---------- */
+const STAGES = [
+  { short:'Key online', title:'Power up the key', activity:4,
+    story:'The door panel is dead. Connect your key and say hello so the panel knows your key is real.',
+    need:'Your key must send <code>HELLO</code>',
+    setup:()=>({}),
+    answer:()=>'HELLO',
+    render:p=>`
+      <div class="term">
+        <div>&gt; DOOR PANEL v7.0</div>
+        <div>&gt; KEY STATUS: <b class="${S.connected?'okc':'badc'}">${S.connected?'CONNECTED':'NOT CONNECTED'}</b></div>
+        <div class="blink">&gt; WAITING FOR HELLO_</div>
+      </div>
+      ${S.connected
+        ? '<p class="tip">Connected. Press the <b>reset button</b> on the back of your micro:bit so your <code>on start</code> code runs again.</p>'
+        : '<button class="btn" data-act="connect">Connect my key</button>'}`,
+    handle:m=> m.up==='HELLO' ? {r:'ok',msg:'Key recognised. Door panel online.'} : {r:'ignore'}
+  },
+  { short:'Lock 1: Keypad', title:'The keypad', activity:5,
+    story:'GLITCH changed the door password. Someone wrote it down and hid the pieces around the room.',
+    need:'Find the password, then make your key send it when <b>A+B</b> are pressed together',
+    setup:()=>({revealed:[false,false,false]}),
+    answer:()=>CONFIG.PASSWORD,
+    render:p=>{
+      const parts = splitWord(CONFIG.PASSWORD);
+      return `
+      <div class="screen">${[...CONFIG.PASSWORD].map(()=>'<span>?</span>').join('')}</div>
+      <p class="tip">Click each object to search it.</p>
+      <div class="objects">${OBJECTS.map((o,i)=>`
+        <button class="obj ${p.revealed[i]?'found':''}" data-act="clue" data-i="${i}">
+          <span class="obj-icon">${o.icon}</span><span>${o.name}</span>
+          <span class="clue">${p.revealed[i]?`Part ${i+1}: <b>${parts[i]}</b>`:'Click to search'}</span>
+        </button>`).join('')}
+      </div>`;
+    },
+    handle:m=>{
+      if(m.up===CONFIG.PASSWORD.toUpperCase()) return {r:'ok',msg:'Password accepted.'};
+      if(!m.key && /^[A-Z]{3,}$/.test(m.up) && !KNOWN.includes(m.up))
+        return {r:'wrong',msg:`ACCESS DENIED. "${esc(m.raw)}" is not the password. Check your spelling.`};
+      return {r:'ignore'};
+    }
+  },
+  { short:'Lock 2: Bugs', title:'Count the bugs', activity:6,
+    story:'The server rack is crawling with bugs. The lock will only open if you tell it exactly how many there are.',
+    need:'Press <b>A</b> once for each bug, then press <b>B</b> to send your count',
+    setup:()=>{
+      const n = rand(3,9);
+      const spots = shuffle([...Array(32).keys()]).slice(0,n);
+      return {n, spots, rot:spots.map(()=>rand(0,359))};
+    },
+    answer:p=>String(p.n),
+    render:p=>`
+      <div class="rack"><div class="rack-label">SERVER RACK 07 · INFECTED</div>
+        <div class="bugfield">${[...Array(32).keys()].map(i=>{
+          const k = p.spots.indexOf(i);
+          return `<span>${k>=0?`<span style="display:inline-block;transform:rotate(${p.rot[k]}deg)">🐞</span>`:''}</span>`;
+        }).join('')}</div>
+      </div>
+      <p class="tip">Made a mistake? Press the reset button on the back to set your count back to 0.</p>`,
+    handle:(m,p)=>{
+      if(m.key && ['REACTOR','ESCAPE'].includes(m.key)) return {r:'ignore'};
+      if(m.num===null) return {r:'ignore'};
+      if(m.num===p.n) return {r:'ok',msg:`Correct. ${p.n} bugs zapped.`};
+      return {r:'wrong',msg:`Your key sent ${m.num}. That is not right. Press reset on the back of your micro:bit, then count again.`};
+    }
+  },
+  { short:'Lock 3: Tilt', title:'The tilt sequence', activity:7,
+    story:'This lock reads movement. Move your key in exactly the order shown.',
+    need:'Your key must send <code>LEFT</code>, <code>RIGHT</code>, <code>SHAKE</code> or <code>FLIP</code> for each move',
+    setup:()=>{
+      const keys = Object.keys(GESTURES); const seq=[];
+      while(seq.length<4){ const g=keys[rand(0,keys.length-1)]; if(g!==seq[seq.length-1]) seq.push(g); }
+      return {seq, pos:0, lastTime:0};
+    },
+    answer:p=>p.seq.join(', '),
+    render:p=>`
+      <div class="seq">${p.seq.map((g,i)=>`
+        <div class="move ${i<p.pos?'done':''} ${i===p.pos?'next':''}"><div class="mi">${GESTURES[g].icon}</div><div>${GESTURES[g].label}</div></div>`).join('')}
+      </div>
+      <p class="tip">A wrong move resets the lock to the start.</p>`,
+    handle:(m,p)=>{
+      const g = m.up; if(!GESTURES[g]) return {r:'ignore'};
+      const now = Date.now();
+      if(p.pos>0 && g===p.seq[p.pos-1] && now-p.lastTime<1000) return {r:'ignore'}; // ignore a double signal
+      if(g===p.seq[p.pos]){
+        p.pos++; p.lastTime=now;
+        return p.pos===p.seq.length ? {r:'ok',msg:'Sequence complete.'} : {r:'progress',msg:`Move ${p.pos} of 4 accepted.`};
+      }
+      p.pos = (g===p.seq[0]) ? 1 : 0; p.lastTime=now;
+      return {r:'wrong',msg:`Wrong move (${GESTURES[g].label}). The sequence has reset.`};
+    }
+  },
+  { short:'Lock 4: Lights out', title:'Lights out', activity:8,
+    story:'The vault sensor only opens in total darkness. Cover your key so it cannot see any light.',
+    need:'When it is dark, your key must send <code>DARK</code>. The lock needs it 3 times in a row',
+    setup:()=>({times:[]}),
+    answer:()=>'DARK three times within 4 seconds',
+    recent:p=>{ const now=Date.now(); p.times=p.times.filter(t=>now-t<4000); return p.times.length; },
+    render(p){ const n=Math.min(3,this.recent(p)); return `
+      <div class="sensor"><div class="eye">👁️</div>
+        <div class="meter">${[0,1,2].map(i=>`<span class="${i<n?'on':''}"></span>`).join('')}</div>
+        <div class="meter-label">DARKNESS ${n}/3</div></div>
+      <p class="tip">Cover the LED screen with your hand. The screen is also the light sensor.</p>`; },
+    handle(m,p){
+      if(m.up!=='DARK') return {r:'ignore'};
+      p.times.push(Date.now());
+      const n=this.recent(p);
+      if(n>=3) return {r:'ok',msg:'Darkness detected. The vault opens.'};
+      setTimeout(()=>{ if(S.playing && STAGES[S.stage]===this) renderPuzzle(); }, 4100);
+      return {r:'progress',msg:`Darkness ${n}/3. Keep it covered.`};
+    }
+  },
+  { short:'Lock 5: Reactor', title:'Reactor countdown', activity:9,
+    story:'The reactor is overheating. Run the cooling countdown from 10 down to 1 to make it safe.',
+    need:'Press the <b>logo</b> to start a loop that sends 10, 9, 8 and so on down to 1',
+    setup:()=>({next:10,last:null}),
+    answer:()=>'10, 9, 8, 7, 6, 5, 4, 3, 2, 1',
+    render:p=>`
+      <div class="reactor"><div class="core ${p.next<10?'cooling':''}">${p.last ?? '--'}</div>
+        <div class="cells">${[...Array(10).keys()].map(i=>`<span class="${i<10-p.next?'on':''}">${10-i}</span>`).join('')}</div></div>`,
+    handle:(m,p)=>{
+      if(m.key && ['COUNT','ESCAPE'].includes(m.key)) return {r:'ignore'};
+      if(m.num===null) return {r:'ignore'};
+      const expected = p.next;
+      if(m.num===expected){
+        p.last=m.num; p.next--;
+        return p.next===0 ? {r:'ok',msg:'Reactor cooled. Safe.'} : {r:'progress',msg:`${m.num} received.`};
+      }
+      if(m.num===10){ p.next=9; p.last=10; return {r:'progress',msg:'Countdown restarted from 10.'}; }
+      p.next=10; p.last=m.num;
+      return {r:'wrong',msg:`Got ${m.num} but expected ${expected}. The countdown must go down by 1 each time. Press the logo to try again.`};
+    }
+  },
+  { short:'Final door', title:'The master lock', activity:10,
+    story:'The exit door has three security checks. Your key must prove it can handle all of them at once.',
+    need:'When it is dark <b>and</b> loud, your key must send <code>ESCAPE</code> with your count joined on',
+    setup:()=>({t:rand(2,6)}),
+    answer:p=>`escape:${p.t}`,
+    render:p=>`
+      <div class="door"><div class="door-panel">
+        <div class="dp-title">EXIT DOOR · MASTER LOCK</div>
+        <div class="dp-count">COUNT REQUIRED: <b>${p.t}</b></div>
+        <ul><li>Set your count to ${p.t} with button A</li><li>Make it dark (cover the screen)</li><li>Make a loud noise</li></ul>
+      </div></div>`,
+    handle:(m,p)=>{
+      if(!m.up.startsWith('ESCAPE')) return {r:'ignore'};
+      if(m.num===null) return {r:'wrong',msg:'Your ESCAPE message needs your count joined on to it.'};
+      if(m.num===p.t) return {r:'ok',msg:'All checks passed. The door is opening.'};
+      return {r:'wrong',msg:`The door needs a count of ${p.t}. Your key sent ${m.num}. Press reset, press A ${p.t} times, then try again.`};
+    }
+  }
+];
+
+/* ---------- message parsing ---------- */
+function parse(line){
+  const raw = line.trim(), up = raw.toUpperCase();
+  let key=null, num=null, mm;
+  if((mm = up.match(/^([A-Z_][A-Z0-9_ ]*?)\s*[:=]\s*(-?\d+(?:\.\d+)?)$/))){ key=mm[1].trim(); num=Number(mm[2]); }
+  else if(/^-?\d+(\.\d+)?$/.test(up)) num = Number(up);
+  else if((mm = up.match(/(-?\d+)$/))) num = Number(mm[1]);
+  return {raw, up, key, num};
+}
+
+/* ---------- UI ---------- */
+function logLine(text, cls, sim){
+  const el=$('log'); const d=document.createElement('div');
+  const t=new Date().toLocaleTimeString('en-GB');
+  d.innerHTML=`<span class="t">${t}</span><span class="${cls}">${text}${sim?' <i>(teacher)</i>':''}</span>`;
+  el.appendChild(d); el.scrollTop=el.scrollHeight;
+  while(el.children.length>120) el.removeChild(el.firstChild);
+}
+function feedback(type,msg){ const f=$('feedback'); f.className='feedback show '+type; f.innerHTML=msg; }
+function renderRail(){
+  $('rail').innerHTML = STAGES.map((s,i)=>`<li class="${i<S.stage?'done':''} ${i===S.stage?'current':''}"><span class="n">${i<S.stage?'✓':i}</span>${s.short}</li>`).join('');
+}
+function renderPuzzle(){ $('puzzle').innerHTML = STAGES[S.stage].render(S.p); }
+function startStage(){
+  const st = STAGES[S.stage];
+  S.p = st.setup(); S.busy=false;
+  $('kicker').textContent = S.stage===0 ? 'STEP 0 · CONNECT' : (S.stage===STAGES.length-1 ? 'FINAL LOCK' : `LOCK ${S.stage} OF ${STAGES.length-2}`);
+  $('stageTitle').textContent = st.title;
+  $('stageStory').textContent = st.story;
+  $('stageNeed').innerHTML = st.need;
+  $('help').innerHTML = `Stuck? Go to <b>Activity ${st.activity}</b> in the slides.`;
+  $('feedback').className='feedback';
+  document.body.classList.toggle('dim', st.short==='Lock 4: Lights out');
+  renderRail(); renderPuzzle(); $('ans').textContent='';
+}
+$('puzzle').addEventListener('click', e=>{
+  const b = e.target.closest('[data-act]'); if(!b) return;
+  if(b.dataset.act==='connect') connectSerial(false);
+  if(b.dataset.act==='clue'){ S.p.revealed[+b.dataset.i]=true; renderPuzzle(); }
+});
+
+function onLine(line, sim=false){
+  if(!line.trim()) return;
+  const m = parse(line);
+  if(!S.playing){ logLine(esc(m.raw)+'  · game not started', 'ign', sim); return; }
+  if(S.busy){ logLine(esc(m.raw), 'ign', sim); return; }
+  const st = STAGES[S.stage];
+  const res = st.handle(m, S.p);
+  if(res.r==='ignore'){ logLine(esc(m.raw)+'  · not needed for this lock', 'ign', sim); return; }
+  logLine(esc(m.raw), res.r==='wrong'?'wrong':'used', sim);
+  if(res.r==='ok'){ feedback('ok', res.msg); complete(false); return; }
+  feedback(res.r==='wrong'?'bad':'progress', res.msg);
+  renderPuzzle();
+}
+
+function complete(override){
+  S.busy = true; renderPuzzle();
+  send('complete', {stage:S.stage, override});
+  $('granted').classList.add('show');
+  setTimeout(()=>{
+    $('granted').classList.remove('show');
+    S.stage++;
+    if(S.stage>=STAGES.length) win(); else startStage();
+  }, 1500);
+}
+
+function fmtTime(s){ return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0'); }
+function elapsed(){ return Math.round((Date.now()-S.startTime)/1000); }
+
+function win(){
+  S.playing=false; clearInterval(S.timer); document.body.classList.remove('dim');
+  $('game').classList.add('hidden'); $('win').classList.remove('hidden');
+  $('wName').textContent=S.initials; $('wClass').textContent=S.cls;
+  $('wTime').textContent=fmtTime(elapsed());
+  $('wDate').textContent=new Date().toLocaleDateString('en-GB');
+}
+
+/* ---------- start ---------- */
+CONFIG.CLASSES.forEach(c=>{ const o=document.createElement('option'); o.value=o.textContent=c; $('cls').appendChild(o); });
+if(!('serial' in navigator)) $('unsupported').classList.remove('hidden');
+
+$('startBtn').addEventListener('click', ()=>{
+  const ini = $('initials').value.toUpperCase().replace(/[^A-Z]/g,'');
+  if(ini.length<2){ $('introErr').textContent='Enter at least 2 letters for your initials.'; return; }
+  S.initials=ini; S.cls=$('cls').value; S.stage=0; S.playing=true; S.startTime=Date.now();
+  $('studentPill').textContent=`${S.initials} · ${S.cls}`;
+  $('studentPill').classList.remove('hidden'); $('timerPill').classList.remove('hidden');
+  S.timer=setInterval(()=>{ $('timerPill').textContent=fmtTime(elapsed()); },1000);
+  $('intro').classList.add('hidden'); $('game').classList.remove('hidden');
+  logLine('Escape started. Waiting for your key.','sys');
+  send('start', {stage:-1});
+  startStage();
+  if(!S.connected) connectSerial(true);
+});
+
+/* ---------- Web Serial ---------- */
+function setConnected(on){
+  S.connected=on;
+  $('dot').classList.toggle('on',on);
+  $('connText').textContent = on ? 'Key connected' : 'Key not connected';
+  $('connectBtn').textContent = on ? 'Reconnect' : 'Connect key';
+  if(S.playing && S.stage===0) renderPuzzle();
+}
+async function connectSerial(auto){
+  if(!('serial' in navigator)){ logLine('This browser cannot use micro:bit serial. Use Chrome or Edge.','sys'); return; }
+  try{
+    if(S.port){ try{ await S.reader?.cancel(); }catch(e){} }
+    let port;
+    if(auto){ const ports = await navigator.serial.getPorts(); port = ports[0]; if(!port) return; }
+    else port = await navigator.serial.requestPort({filters:[{usbVendorId:0x0d28}]});
+    await port.open({baudRate:115200});
+    S.port = port; setConnected(true);
+    logLine('Key connected.','sys');
+    readLoop(port);
+  }catch(e){
+    if(e.name==='NotFoundError') return;                     // student closed the picker
+    setConnected(false);
+    logLine('Could not connect: '+esc(e.message),'sys');
+    if(S.playing) feedback('bad','Could not connect to your key. In MakeCode, click the three dots next to Download and choose <b>Disconnect</b>. Then unplug your micro:bit, plug it back in, and click Connect key.');
+  }
+}
+async function readLoop(port){
+  const decoder = new TextDecoderStream();
+  const done = port.readable.pipeTo(decoder.writable).catch(()=>{});
+  const reader = decoder.readable.getReader(); S.reader = reader;
+  let buf='';
+  try{
+    while(true){
+      const {value, done:d} = await reader.read();
+      if(d) break;
+      buf += value;
+      const lines = buf.split(/\r?\n/); buf = lines.pop();
+      lines.forEach(l=>onLine(l));
+    }
+  }catch(e){}
+  finally{ try{ reader.releaseLock(); }catch(e){} }
+  await done;
+  try{ await port.close(); }catch(e){}
+  if(S.port===port){ S.port=null; setConnected(false); logLine('Key disconnected.','sys'); }
+}
+$('connectBtn').addEventListener('click', ()=>connectSerial(false));
+
+/* ---------- dashboard logging ---------- */
+function send(event, extra){
+  if(!CONFIG.SCRIPT_URL) return;
+  const body = JSON.stringify(Object.assign({event, cls:S.cls, initials:S.initials, elapsed:elapsed()}, extra));
+  fetch(CONFIG.SCRIPT_URL, {method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'}, body}).catch(()=>{});
+}
+
+/* ---------- teacher mode ---------- */
+function openTeacher(){
+  const pin = prompt('Teacher PIN'); if(pin!==CONFIG.TEACHER_PIN) return;
+  $('teacher').classList.remove('hidden');
+}
+document.addEventListener('keydown', e=>{ if(e.ctrlKey && e.shiftKey && e.key.toLowerCase()==='t'){ e.preventDefault(); openTeacher(); } });
+if(new URLSearchParams(location.search).has('teacher')) setTimeout(openTeacher, 300);
+$('simBtn').addEventListener('click', ()=>{ const v=$('simInput').value; if(v){ onLine(v,true); $('simInput').value=''; } });
+$('simInput').addEventListener('keydown', e=>{ if(e.key==='Enter') $('simBtn').click(); });
+$('skipBtn').addEventListener('click', ()=>{ if(S.playing && !S.busy){ logLine('Lock skipped by teacher.','sys'); feedback('ok','Lock opened by teacher.'); complete(true); } });
+$('ansBtn').addEventListener('click', ()=>{ if(S.playing) $('ans').textContent = 'Answer: ' + STAGES[S.stage].answer(S.p); });
+$('closeTeacher').addEventListener('click', ()=>$('teacher').classList.add('hidden'));
+</script>
+</body>
+</html>
